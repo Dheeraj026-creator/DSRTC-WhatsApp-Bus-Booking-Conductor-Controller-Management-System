@@ -29,28 +29,35 @@ exports.receiveMessage = async (req, res) => {
 
     const message = messages[0];
     const from = message.from;
-    const text = message.text?.body?.trim().toLowerCase() || "";
+    const rawText = message.text?.body || "";
+    const text = rawText.trim().toLowerCase();
 
-    // 🧩 Reset session if user says hi/hello anytime
-    if (["hi", "hello"].includes(text)) {
-      delete sessions[from];
-      sessions[from] = { step: "greeting", userNumber: from };
+    // 🧩 Normalize text for reliable detection (removes emojis/punctuations)
+    const normalizedText = text.replace(/[^a-z]/g, "");
 
-      console.log(`📩 WhatsApp msg from ${from}: "${text}" [reset → greeting]`);
+    /* ─────────────── RESET FLOW ON "HI" OR "HELLO" ─────────────── */
+    if (normalizedText === "hi" || normalizedText === "hello") {
+      sessions[from] = { step: "destination", userNumber: from };
+
+      console.log(`📩 WhatsApp msg from ${from}: "${rawText}" [reset → destination]`);
 
       await sendWhatsAppMessage(
         from,
-        `👋 *Welcome to DSRTC Smart Bus Booking!*\n\nPlease choose destination:\n1️⃣ Mysore\n2️⃣ Bangalore`
+        `👋 *Welcome to DSRTC Smart Bus Booking!*\n\nPlease choose destination:\n1️⃣ Mysore\n2️⃣ Bangalore\n\n(Reply with the number)`
       );
-      sessions[from].step = "destination";
+
       return res.sendStatus(200);
     }
 
-    // 🧠 Normal flow continues
-    if (!sessions[from]) sessions[from] = { step: "greeting", userNumber: from };
+    /* ─────────────── SESSION INIT ─────────────── */
+    if (!sessions[from]) {
+      sessions[from] = { step: "greeting", userNumber: from };
+    }
     const session = sessions[from];
 
     console.log(`📩 WhatsApp msg from ${from}: "${text}" [${session.step}]`);
+
+    /* ─────────────── LOGIC FLOW ─────────────── */
 
     if (session.step === "greeting") {
       await sendWhatsAppMessage(from, "💡 Type *hi* to start booking.");
@@ -60,7 +67,10 @@ exports.receiveMessage = async (req, res) => {
       else if (text === "2") session.destination = "Bangalore";
       else return await sendWhatsAppMessage(from, "⚠️ Reply with *1* or *2*.");
 
-      await sendWhatsAppMessage(from, `📍 Destination: *${session.destination}*\nEnter passenger details (e.g. 2 men, 1 woman, 1 child):`);
+      await sendWhatsAppMessage(
+        from,
+        `📍 Destination: *${session.destination}*\n\nEnter passenger details (e.g. 2 men, 1 woman, 1 child):`
+      );
       session.step = "passengers";
 
     } else if (session.step === "passengers") {
@@ -89,33 +99,47 @@ exports.receiveMessage = async (req, res) => {
       }
 
       session.availableBuses = availableBuses;
+
       let msg = `🧾 *Booking Summary:*\nDestination: ${session.destination}\nPassengers: 👨 ${men} | 👩 ${women} | 👧 ${children}\n💰 Fare: ₹${session.totalBill}\n\n🚌 *Available Buses:*\n`;
-      availableBuses.forEach((bus, i) => (msg += `${i + 1}. ${bus.busNumber} — ${bus.departureTime}\n`));
+      availableBuses.forEach(
+        (bus, i) => (msg += `${i + 1}. ${bus.busNumber} — ${bus.departureTime}\n`)
+      );
       msg += `\n👉 Reply with *bus number (e.g. 1)* to confirm.`;
+
       await sendWhatsAppMessage(from, msg);
       session.step = "selectBus";
 
     } else if (session.step === "selectBus") {
       const index = parseInt(text) - 1;
-      const bus = session.availableBuses[index]
-        ? await Bus.findById(session.availableBuses[index]._id)
-        : null;
 
-      if (!bus) return await sendWhatsAppMessage(from, "⚠️ Invalid bus number.");
+      if (isNaN(index) || !session.availableBuses || !session.availableBuses[index]) {
+        return await sendWhatsAppMessage(from, "⚠️ Invalid bus number. Please reply with a valid number.");
+      }
+
+      const bus = await Bus.findById(session.availableBuses[index]._id);
+      if (!bus) return await sendWhatsAppMessage(from, "⚠️ Selected bus not found.");
 
       session.selectedBus = bus;
+
       const amountInPaise = session.totalBill * 100;
       const order = await razorpay.orders.create({
         amount: amountInPaise,
         currency: "INR",
         receipt: `receipt_${Date.now()}`,
       });
+
       session.paymentOrderId = order.id;
       session.step = "waitingPayment";
 
       await sendWhatsAppMessage(
         from,
         `💳 *Payment Required*\n\n🚌 Bus No: ${bus.busNumber}\n📍 ${session.destination}\n💰 Total: ₹${session.totalBill}\n\nPay here:\n${PUBLIC_URL}/pay/${order.id}`
+      );
+
+    } else if (session.step === "waitingPayment") {
+      await sendWhatsAppMessage(
+        from,
+        "💰 Your payment is still pending. Please complete it using the provided link."
       );
     }
 
