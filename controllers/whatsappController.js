@@ -31,21 +31,29 @@ exports.receiveMessage = async (req, res) => {
     const from = message.from;
     const text = message.text?.body?.trim().toLowerCase() || "";
 
+    // 🧩 Reset session if user says hi/hello anytime
+    if (["hi", "hello"].includes(text)) {
+      delete sessions[from];
+      sessions[from] = { step: "greeting", userNumber: from };
+
+      console.log(`📩 WhatsApp msg from ${from}: "${text}" [reset → greeting]`);
+
+      await sendWhatsAppMessage(
+        from,
+        `👋 *Welcome to DSRTC Smart Bus Booking!*\n\nPlease choose destination:\n1️⃣ Mysore\n2️⃣ Bangalore`
+      );
+      sessions[from].step = "destination";
+      return res.sendStatus(200);
+    }
+
+    // 🧠 Normal flow continues
     if (!sessions[from]) sessions[from] = { step: "greeting", userNumber: from };
     const session = sessions[from];
 
     console.log(`📩 WhatsApp msg from ${from}: "${text}" [${session.step}]`);
 
     if (session.step === "greeting") {
-      if (["hi", "hello"].includes(text)) {
-        await sendWhatsAppMessage(
-          from,
-          `👋 *Welcome to DSRTC Smart Bus Booking!*\n\nPlease choose destination:\n1️⃣ Mysore\n2️⃣ Bangalore`
-        );
-        session.step = "destination";
-      } else {
-        await sendWhatsAppMessage(from, "💡 Type *hi* to start booking.");
-      }
+      await sendWhatsAppMessage(from, "💡 Type *hi* to start booking.");
 
     } else if (session.step === "destination") {
       if (text === "1") session.destination = "Mysore";
