@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Razorpay Payment</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  </head>
+  <body>
+    <h2>Processing your payment...</h2>
+    <script>
+      const options = {
+        key: "<%= razorpayKey %>",
+        amount: "1000", // handled by backend
+        currency: "INR",
+        order_id: "<%= orderId %>",
+        name: "DSRTC Smart Booking",
+        description: "Bus Ticket Payment",
+        handler: function(response) {
+          alert("Payment successful!");
+        }
+      };
+      const rzp = new Razorpay(options);
+      rzp.open();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – Add New Bus</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background: #f8f9fa;
+    }
+    .card {
+      border-radius: 15px;
+      border: none;
+    }
+    h1 {
+      font-weight: 600;
+      color: #0d6efd;
+    }
+    .btn-primary {
+      border-radius: 10px;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-5 mb-5">
+
+    <!-- 🧭 Header with link to Bus Listings -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="mb-0">🚌 Admin – Add New Bus</h1>
+      <a href="/" class="btn btn-outline-secondary">⬅️ Go to Bus Listings</a>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <form action="/admin" method="POST" class="card shadow-sm p-4 bg-white">
+
+          <!-- Bus Number -->
+          <div class="mb-3">
+            <label class="form-label">Bus Number</label>
+            <input type="text" name="busNumber" class="form-control" placeholder="KA-01-1234" required>
+          </div>
+
+          <!-- Driver Name -->
+          <div class="mb-3">
+            <label class="form-label">Driver Name</label>
+            <input type="text" name="driverName" class="form-control" placeholder="Enter Driver Name" required>
+          </div>
+
+          <!-- Driver Phone -->
+          <div class="mb-3">
+            <label class="form-label">Driver Phone</label>
+            <input type="text" name="driverPhone" class="form-control" maxlength="10" placeholder="10-digit phone number" required>
+          </div>
+
+          <!-- Total Seats -->
+          <div class="mb-3">
+            <label class="form-label">Total Seats</label>
+            <input type="number" id="totalSeats" name="totalSeats" class="form-control" min="1" required>
+          </div>
+
+          <!-- Available Seats -->
+          <div class="mb-3">
+            <label class="form-label">Available Seats</label>
+            <input type="number" id="availableSeats" name="availableSeats" class="form-control" min="0" required readonly>
+          </div>
+
+          <!-- Departure City -->
+          <div class="mb-3">
+            <label class="form-label">Departure City</label>
+            <select name="departureCity" id="departureCity" class="form-select" required>
+              <option value="">-- Select Departure City --</option>
+              <option value="Bengaluru">Bengaluru</option>
+              <option value="Mysuru">Mysuru</option>
+            </select>
+          </div>
+
+          <!-- Arrival City -->
+          <div class="mb-3">
+            <label class="form-label">Arrival City</label>
+            <input type="text" name="arrivalCity" id="arrivalCity" class="form-control" placeholder="Auto-filled" readonly required>
+          </div>
+
+          <!-- Departure Time -->
+          <div class="mb-3">
+            <label class="form-label">Departure Time</label>
+            <input type="time" name="departureTime" class="form-control" required>
+          </div>
+
+          <!-- Arrival Time -->
+          <div class="mb-3">
+            <label class="form-label">Arrival Time</label>
+            <input type="time" name="arrivalTime" class="form-control" required>
+          </div>
+
+          <!-- Secret Key -->
+          <div class="mb-3">
+            <label class="form-label">Secret Key</label>
+            <input type="text" name="secretKey" class="form-control" placeholder="Unique bus code" required>
+          </div>
+
+          <!-- Submit -->
+          <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary w-100">Add Bus</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Auto arrival city logic
+    const departureSelect = document.getElementById("departureCity");
+    const arrivalInput = document.getElementById("arrivalCity");
+
+    departureSelect.addEventListener("change", () => {
+      if (departureSelect.value === "Bengaluru") {
+        arrivalInput.value = "Mysuru";
+      } else if (departureSelect.value === "Mysuru") {
+        arrivalInput.value = "Bengaluru";
+      } else {
+        arrivalInput.value = "";
+      }
+    });
+
+    // ✅ Auto available seats same as total seats
+    const totalSeatsInput = document.getElementById("totalSeats");
+    const availableSeatsInput = document.getElementById("availableSeats");
+
+    totalSeatsInput.addEventListener("input", () => {
+      availableSeatsInput.value = totalSeatsInput.value;
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

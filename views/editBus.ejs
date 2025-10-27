@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Bus</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mt-5">
+    <h2 class="mb-4 text-center">✏️ Edit Bus Details</h2>
+
+    <form action="/admin/edit/<%= bus._id %>" method="POST" class="card shadow-sm p-4">
+      <div class="mb-3">
+        <label class="form-label">Bus Number</label>
+        <input
+          type="text"
+          name="busNumber"
+          value="<%= bus.busNumber %>"
+          class="form-control"
+          required
+        >
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Driver Name</label>
+        <input
+          type="text"
+          name="driverName"
+          value="<%= bus.driverName %>"
+          class="form-control"
+          required
+        >
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Driver Phone</label>
+        <input
+          type="text"
+          name="driverPhone"
+          value="<%= bus.driverPhone %>"
+          class="form-control"
+          required
+        >
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Total Seats</label>
+        <input
+          type="number"
+          name="totalSeats"
+          value="<%= bus.totalSeats %>"
+          class="form-control"
+          required
+        >
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Departure Time</label>
+        <input
+          type="time"
+          name="departureTime"
+          value="<%= bus.departureTime %>"
+          class="form-control"
+          required
+        >
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Arrival Time</label>
+        <input
+          type="time"
+          name="arrivalTime"
+          value="<%= bus.arrivalTime %>"
+          class="form-control"
+          required
+        >
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="/buses" class="btn btn-secondary">⬅️ Back</a>
+        <button type="submit" class="btn btn-success">💾 Save Changes</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Scanner - Conductor</title>
+
+  <!-- Bootstrap -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 20px auto;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+    }
+    .result-box {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .cooldown {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-top: 5px;
+    }
+    .nav-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h2 class="text-center mb-4">📷 QR Code Scanner</h2>
+
+    <!-- 🔍 QR Code Scanner -->
+    <div id="reader"></div>
+
+    <!-- 📄 Scan Result -->
+    <div class="result-box">
+      <h5 class="mt-3">Scan Result:</h5>
+      <div id="result" class="p-3 bg-light border rounded">Waiting for scan...</div>
+      <div id="cooldown" class="cooldown"></div>
+    </div>
+
+    <!-- 🧭 Navigation Buttons -->
+    <div class="nav-buttons">
+      <a href="/conductor" class="btn btn-outline-danger">🚍 Bus Login</a>
+      <a href="/passengers" class="btn btn-outline-primary">🧾 Passenger Details</a>
+    </div>
+  </div>
+
+  <!-- 🧠 Pass bus bookings from server -->
+  <script>
+    const busBookings = JSON.parse(`<%- JSON.stringify(bus.bookings || []) %>`);
+  </script>
+
+  <!-- html5-qrcode library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script>
+    const resultElement = document.getElementById("result");
+    const cooldownElement = document.getElementById("cooldown");
+    const html5QrCode = new Html5Qrcode("reader");
+    const scanCooldown = 5;
+    let isCooldown = false;
+
+    // 🧠 Extract Data from QR Text
+    function extractQRData(qrText) {
+      const bookingIdMatch = qrText.match(/Booking\s*ID[:\-]?\s*([a-f0-9]+)/i);
+      const busNumberMatch = qrText.match(/Bus[:\-]?\s*([A-Z0-9-]+)/i);
+      const destinationMatch = qrText.match(/Destination[:\-]?\s*([A-Za-z\s]+)/i);
+      const passengersMatch = qrText.match(/Passengers[:\-]?\s*(\d+)/i);
+      const totalBillMatch = qrText.match(/(Total\s*Bill|Fare|Amount)[:\-]?\s*(?:₹|Rs\.?)?\s*([\d.,]+)/i);
+
+      return {
+        bookingId: bookingIdMatch ? bookingIdMatch[1] : null,
+        busNumber: busNumberMatch ? busNumberMatch[1] : null,
+        destination: destinationMatch ? destinationMatch[1].trim() : null,
+        passengers: passengersMatch ? Number(passengersMatch[1]) : null,
+        totalBill: totalBillMatch ? parseFloat(totalBillMatch[2].replace(/,/g, "")) : null,
+        rawData: qrText,
+      };
+    }
+
+    // 📅 Get Current Date (YYYY-MM-DD)
+    function getCurrentDate() {
+      const now = new Date();
+      return now.toISOString().split("T")[0];
+    }
+
+    // 🎯 Handle Scan Success
+    async function onScanSuccess(decodedText) {
+      if (isCooldown) return;
+
+      isCooldown = true;
+      resultElement.innerHTML = `<strong>Processing QR Data...</strong>`;
+      cooldownElement.innerText = "";
+
+      const qrInfo = extractQRData(decodedText);
+      console.log("📦 Extracted QR Object:", qrInfo);
+
+      if (!qrInfo.bookingId) {
+        resultElement.innerHTML = `<div class="alert alert-danger">❌ Invalid QR format — Booking ID missing.</div>`;
+        return startCooldown();
+      }
+
+      const isBookingValid = busBookings.some(
+        (id) => id.toLowerCase() === qrInfo.bookingId.toLowerCase()
+      );
+
+      if (isBookingValid) {
+        resultElement.innerHTML = `
+          <div class="alert alert-success">
+            ✅ <strong>Valid Ticket!</strong><br>
+            <b>Booking ID:</b> ${qrInfo.bookingId}<br>
+            <b>Bus:</b> ${qrInfo.busNumber || "N/A"}<br>
+            <b>Destination:</b> ${qrInfo.destination || "N/A"}<br>
+            <b>Passengers:</b> ${qrInfo.passengers ?? "N/A"}<br>
+            <b>Fare:</b> ₹${qrInfo.totalBill ?? "N/A"}<br>
+            <b>Date:</b> ${getCurrentDate()}<br>
+            <small>Redirecting to passenger details...</small>
+          </div>
+        `;
+
+        try {
+          const response = await fetch("/passengers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bookingId: qrInfo.bookingId,
+              busNumber: qrInfo.busNumber,
+              destination: qrInfo.destination,
+              passengers: qrInfo.passengers,
+              totalBill: qrInfo.totalBill,
+              date: getCurrentDate(),
+            }),
+          });
+
+          if (response.ok) {
+            console.log("✅ Passenger saved successfully!");
+            window.location.href = "/passengers";
+          } else {
+            const text = await response.text();
+            console.error("❌ Server error:", text);
+            resultElement.innerHTML += `<div class="text-danger mt-2">⚠️ Failed to store passenger (Server Error).</div>`;
+            startCooldown();
+          }
+        } catch (err) {
+          console.error("❌ Network error:", err);
+          resultElement.innerHTML += `<div class="text-danger mt-2">⚠️ Network error while saving passenger.</div>`;
+          startCooldown();
+        }
+      } else {
+        resultElement.innerHTML = `
+          <div class="alert alert-danger">
+            ❌ This ticket is <strong>not valid</strong> for this bus.<br>
+            (Booking ID: ${qrInfo.bookingId})
+          </div>
+        `;
+        startCooldown();
+      }
+    }
+
+    // ⏱ Cooldown between scans
+    function startCooldown() {
+      let remaining = scanCooldown;
+      cooldownElement.innerText = `Next scan available in ${remaining}s...`;
+
+      const countdown = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          cooldownElement.innerText = `Next scan available in ${remaining}s...`;
+        } else {
+          clearInterval(countdown);
+          cooldownElement.innerText = "";
+          isCooldown = false;
+          resultElement.innerHTML += `<div class="text-muted mt-2">Ready for next scan.</div>`;
+        }
+      }, 1000);
+    }
+
+    // 📷 Start the camera
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      onScanSuccess,
+      (errorMessage) => {}
+    );
+  </script>
+</body>
+</html>
