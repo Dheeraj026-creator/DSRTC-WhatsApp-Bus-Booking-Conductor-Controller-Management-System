@@ -80,31 +80,37 @@ exports.receiveMessage = async (req, res) => {
         women: parseInt(numbers[1] || 0),
         children: parseInt(numbers[2] || 0),
       };
+
       const { men, women, children } = session.passengers;
       const totalPassengers = men + women + children;
       session.totalBill = men * 210 + children * 110;
 
+      // 🕐 Current time in HH:mm (24-hr)
       const now = new Date();
-      const currentTime = now.toLocaleTimeString('en-GB', { hour12: false }).slice(0, 5); // gives "06:23"
-      
+      const currentTime = now.toLocaleTimeString("en-GB", { hour12: false }).slice(0, 5);
+
+      const destination = session.destination.toLowerCase();
+
+      // ✅ Find buses that arrive at the selected destination and have departure time > now
       const availableBuses = await Bus.find({
         totalSeats: { $gte: totalPassengers },
+        arrivalCity: { $regex: destination, $options: "i" },
         departureTime: { $gte: currentTime },
       }).sort({ departureTime: 1 });
-      
 
       if (!availableBuses.length) {
-        await sendWhatsAppMessage(from, "😔 No buses available right now.");
+        await sendWhatsAppMessage(from, `😔 No upcoming buses to *${session.destination}* right now.`);
         session.step = "greeting";
         return;
       }
 
       session.availableBuses = availableBuses;
 
+      // 🧾 Show summary + available buses
       let msg = `🧾 *Booking Summary:*\nDestination: ${session.destination}\nPassengers: 👨 ${men} | 👩 ${women} | 👧 ${children}\n💰 Fare: ₹${session.totalBill}\n\n🚌 *Available Buses:*\n`;
-      availableBuses.forEach(
-        (bus, i) => (msg += `${i + 1}. ${bus.busNumber} — ${bus.departureTime}\n`)
-      );
+      availableBuses.forEach((bus, i) => {
+        msg += `${i + 1}. ${bus.busNumber} — ${bus.departureTime} (${bus.departureCity} → ${bus.arrivalCity})\n`;
+      });
       msg += `\n👉 Reply with *bus number (e.g. 1)* to confirm.`;
 
       await sendWhatsAppMessage(from, msg);
