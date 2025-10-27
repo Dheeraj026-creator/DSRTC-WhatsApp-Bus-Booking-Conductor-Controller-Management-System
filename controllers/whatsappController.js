@@ -85,12 +85,13 @@ exports.receiveMessage = async (req, res) => {
       session.totalBill = men * 210 + children * 110;
 
       const now = new Date();
-      const currentTime = now.toTimeString().slice(0, 5);
-
+      const currentTime = now.toLocaleTimeString('en-GB', { hour12: false }).slice(0, 5); // gives "06:23"
+      
       const availableBuses = await Bus.find({
         totalSeats: { $gte: totalPassengers },
         departureTime: { $gte: currentTime },
       }).sort({ departureTime: 1 });
+      
 
       if (!availableBuses.length) {
         await sendWhatsAppMessage(from, "😔 No buses available right now.");

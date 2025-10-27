@@ -22,5 +22,14 @@ const busSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now }
 });
-
+busSchema.pre('save', function (next) {
+  const padTime = (time) => {
+    if (!time) return time;
+    const [h, m] = time.split(':').map(Number);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+  this.departureTime = padTime(this.departureTime);
+  this.arrivalTime = padTime(this.arrivalTime);
+  next();
+});
 module.exports = mongoose.model("Bus", busSchema);
