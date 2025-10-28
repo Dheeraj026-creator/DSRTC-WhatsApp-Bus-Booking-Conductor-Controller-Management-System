@@ -85,27 +85,34 @@ exports.receiveMessage = async (req, res) => {
       const totalPassengers = men + women + children;
       session.totalBill = men * 210 + children * 110;
 
-      const buses = await Bus.find({
-        totalSeats: { $gte: totalPassengers },
-        arrivalCity: session.destination,
-      });
       const now = new Date();
-const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-const availableBuses = buses.filter(bus => {
-  if (!bus.departureTime) return false; // skip invalid ones
-  const [h, m] = bus.departureTime.split(':').map(Number);
-  const busMinutes = h * 60 + m;
-  return busMinutes >= currentMinutes;
-});
-
-// Sort them in order of time
-availableBuses.sort((a, b) => {
-  const [h1, m1] = a.departureTime.split(':').map(Number);
-  const [h2, m2] = b.departureTime.split(':').map(Number);
-  return h1 * 60 + m1 - (h2 * 60 + m2);
-});
-
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      
+      // Fetch all buses with enough seats and correct arrival city
+      let buses = await Bus.find({
+        arrivalCity: session.destination, // or req.body.destination
+        totalSeats: { $gte: totalPassengers },
+      });
+      
+      // Clean and pad departure times before filtering
+      buses = buses.filter(bus => {
+        if (!bus.departureTime) return false;
+      
+        // Normalize time like "7:5" → "07:05"
+        const [h, m] = bus.departureTime.split(':').map(num => Number(num));
+        if (isNaN(h) || isNaN(m)) return false;
+      
+        const busMinutes = h * 60 + m;
+        return busMinutes >= currentMinutes;
+      });
+      
+      // Sort the filtered buses by departure time
+      buses.sort((a, b) => {
+        const [h1, m1] = a.departureTime.split(':').map(Number);
+        const [h2, m2] = b.departureTime.split(':').map(Number);
+        return h1 * 60 + m1 - (h2 * 60 + m2);
+      });
+      
      
 
       if (!availableBuses.length) {
