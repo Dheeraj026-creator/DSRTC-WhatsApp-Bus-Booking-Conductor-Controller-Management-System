@@ -85,39 +85,35 @@ exports.receiveMessage = async (req, res) => {
       const totalPassengers = men + women + children;
       session.totalBill = men * 210 + children * 110;
 
-     // ✅ Get current time (as Date)
-const now = new Date();
+      const now = new Date();
 
-// ✅ Fetch buses with enough seats and correct destination
-let allBuses = await Bus.find({
-  arrivalCity: session.destination,
-  totalSeats: { $gte: totalPassengers },
-});
-
-console.log("🚌 Raw buses found:", allBuses.map(b => `${b.busNumber} at ${b.departureTime}`));
-
-// ✅ Convert each departureTime (HH:mm) into a Date object for today
-let availableBuses = allBuses.filter(bus => {
-  if (!bus.departureTime) return false;
-
-  const [h, m] = bus.departureTime.split(":").map(Number);
-  const departureDate = new Date(now);
-  departureDate.setHours(h, m, 0, 0);
-
-  console.log(`⏰ Bus ${bus.busNumber} => departs at ${departureDate}, now is ${now}`);
-
-  // ✅ Show only if bus departs later than current time
-  return departureDate > now;
-});
-
-// ✅ Sort by actual time
-availableBuses.sort((a, b) => {
-  const [h1, m1] = a.departureTime.split(":").map(Number);
-  const [h2, m2] = b.departureTime.split(":").map(Number);
-  return h1 * 60 + m1 - (h2 * 60 + m2);
-});
-
-    
+      // Convert to IST time by adding 5.5 hours
+      const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+      
+      let allBuses = await Bus.find({
+        arrivalCity: session.destination,
+        totalSeats: { $gte: totalPassengers },
+      });
+      
+      console.log("🚌 Raw buses found:", allBuses.map(b => `${b.busNumber} at ${b.departureTime}`));
+      
+      let availableBuses = allBuses.filter(bus => {
+        if (!bus.departureTime) return false;
+      
+        const [h, m] = bus.departureTime.split(":").map(Number);
+        const departureDate = new Date(istNow);
+        departureDate.setHours(h, m, 0, 0);
+      
+        console.log(`⏰ Bus ${bus.busNumber} => departs at ${departureDate.toISOString()} | IST now: ${istNow.toISOString()}`);
+      
+        return departureDate > istNow;
+      });
+      
+      availableBuses.sort((a, b) => {
+        const [h1, m1] = a.departureTime.split(":").map(Number);
+        const [h2, m2] = b.departureTime.split(":").map(Number);
+        return h1 * 60 + m1 - (h2 * 60 + m2);
+      });
 
       if (!availableBuses.length) {
         await sendWhatsAppMessage(from, `😔 No upcoming buses to *${session.destination}* right now.`);
