@@ -1,15 +1,16 @@
 # 🚌 DSRTC – WhatsApp Bus Booking, Conductor & Controller Management System  
-
-📍 **Focused on Bangalore–Mysore Non-Stop Service**  
-
-This project is designed to modernize intercity travel — specifically the **Bangalore–Mysore non-stop bus route** — by automating booking, conductor verification, and ticket generation through **WhatsApp integration** and **Razorpay payment gateway**.  
-
-
 🔗 Live Links
 🧑‍💼 Controller Dashboard (Add / Delete Buses):
 👉 https://dsrtc-whatsapp-bus-booking-conductor.onrender.com
 🧑‍✈️ Conductor Dashboard (Scan & Verify Passengers):
 👉 https://dsrtc-whatsapp-bus-booking-conductor.onrender.com/conductor
+
+📍 **Focused on Bangalore–Mysore Non-Stop Service**  
+
+
+This project is designed to modernize intercity travel — specifically the **Bangalore–Mysore non-stop bus route** — by automating booking, conductor verification, and ticket generation through **WhatsApp integration** and **Razorpay payment gateway**.  
+
+
 ---
 
 ## 🚀 Overview
