@@ -4,6 +4,12 @@
 
 This project is designed to modernize intercity travel — specifically the **Bangalore–Mysore non-stop bus route** — by automating booking, conductor verification, and ticket generation through **WhatsApp integration** and **Razorpay payment gateway**.  
 
+
+🔗 Live Links
+🧑‍💼 Controller Dashboard (Add / Delete Buses):
+👉 https://dsrtc-whatsapp-bus-booking-conductor.onrender.com
+🧑‍✈️ Conductor Dashboard (Scan & Verify Passengers):
+👉 https://dsrtc-whatsapp-bus-booking-conductor.onrender.com/conductor
 ---
 
 ## 🚀 Overview
@@ -50,9 +56,14 @@ It enables:
 ```bash
 git clone git@github.com:Dheeraj026-creator/DSRTC-WhatsApp-Bus-Booking-Conductor-Controller-Management-System.git
 cd DSRTC-WhatsApp-Bus-Booking-Conductor-Controller-Management-System
+
+
 2️⃣ Install dependencies
-npm install
+     npm install
+
+
 3️⃣ Create a .env file in the project root
+
 MONGODB_URI=your_mongodb_connection_string  
 RAZORPAY_KEY_ID=your_razorpay_key_id  
 RAZORPAY_KEY_SECRET=your_razorpay_secret_key  
@@ -62,8 +73,11 @@ PHONE_NUMBER_ID=your_meta_whatsapp_phone_number_id
 VERIFY_TOKEN=dsrtc_verify  
 PUBLIC_URL=http://localhost:3000  
 KSRTC_SIGNUP_CODE=your_admin_code
+
 4️⃣ Run the server
-node server.js
+   node server.js
+
+
 🚏 License
 This project is licensed under the MIT License — feel free to use, modify, and share it with attribution.
 💡 Notes
