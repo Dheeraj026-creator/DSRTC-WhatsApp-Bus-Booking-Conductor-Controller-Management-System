@@ -86,30 +86,29 @@ exports.receiveMessage = async (req, res) => {
       session.totalBill = men * 210 + children * 110;
 
       const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    
-      // ✅ Get buses by arrivalCity and enough seats
+
+      // ✅ Find buses for the chosen destination and seats
       let availableBuses = await Bus.find({
-        arrivalCity: session.destination, 
+        arrivalCity: session.destination,
         totalSeats: { $gte: totalPassengers },
       });
     
-      // ✅ Filter and sort buses by time
+      // ✅ Convert each bus's departureTime (HH:mm) into a full Date
       availableBuses = availableBuses
-        .filter(bus => {
-          if (!bus.departureTime) return false;
-          const [h, m] = bus.departureTime.split(':').map(Number);
-          if (isNaN(h) || isNaN(m)) return false;
-          const busMinutes = h * 60 + m;
-          return busMinutes >= currentMinutes; // only show buses later than now
+        .map(bus => {
+          const [hours, minutes] = bus.departureTime.split(":").map(Number);
+          const departureDate = new Date(now);
+          departureDate.setHours(hours, minutes, 0, 0);
+          return { ...bus.toObject(), departureDate };
         })
-        .sort((a, b) => {
-          const [h1, m1] = a.departureTime.split(':').map(Number);
-          const [h2, m2] = b.departureTime.split(':').map(Number);
-          return h1 * 60 + m1 - (h2 * 60 + m2);
-        });
+        // ✅ Filter: show only buses whose departure time is later than current time
+        .filter(bus => bus.departureDate > now)
+        // ✅ Sort by time
+        .sort((a, b) => a.departureDate - b.departureDate);
     
-     
+      // ✅ Save to session
+      session.availableBuses = availableBuses;
+    
 
       if (!availableBuses.length) {
         await sendWhatsAppMessage(from, `😔 No upcoming buses to *${session.destination}* right now.`);
@@ -117,7 +116,7 @@ exports.receiveMessage = async (req, res) => {
         return;
       }
 
-      session.availableBuses = availableBuses;
+    
 
       // 🧾 Show summary + available buses
       let msg = `🧾 *Booking Summary:*\nDestination: ${session.destination}\nPassengers: 👨 ${men} | 👩 ${women} | 👧 ${children}\n💰 Fare: ₹${session.totalBill}\n\n🚌 *Available Buses:*\n`;
