@@ -85,18 +85,28 @@ exports.receiveMessage = async (req, res) => {
       const totalPassengers = men + women + children;
       session.totalBill = men * 210 + children * 110;
 
-      // 🕐 Current time in HH:mm (24-hr)
-      const now = new Date();
-      const currentTime = now.toLocaleTimeString("en-GB", { hour12: false }).slice(0, 5);
-
-      const destination = session.destination.toLowerCase();
-
-      // ✅ Find buses that arrive at the selected destination and have departure time > now
-      const availableBuses = await Bus.find({
+      const buses = await Bus.find({
         totalSeats: { $gte: totalPassengers },
-        arrivalCity: { $regex: destination, $options: "i" },
-        departureTime: { $gte: currentTime },
-      }).sort({ departureTime: 1 });
+        arrivalCity: session.destination,
+      });
+      const now = new Date();
+const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+const availableBuses = buses.filter(bus => {
+  if (!bus.departureTime) return false; // skip invalid ones
+  const [h, m] = bus.departureTime.split(':').map(Number);
+  const busMinutes = h * 60 + m;
+  return busMinutes >= currentMinutes;
+});
+
+// Sort them in order of time
+availableBuses.sort((a, b) => {
+  const [h1, m1] = a.departureTime.split(':').map(Number);
+  const [h2, m2] = b.departureTime.split(':').map(Number);
+  return h1 * 60 + m1 - (h2 * 60 + m2);
+});
+
+     
 
       if (!availableBuses.length) {
         await sendWhatsAppMessage(from, `😔 No upcoming buses to *${session.destination}* right now.`);
